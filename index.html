@@ -1,0 +1,2495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusERP + Sime2026 — Suite Modular & Corte 2D</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .nav-item.active {
+      background-color: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35);
+    }
+    .nav-item:not(.active):hover {
+      background-color: #1e293b;
+      color: #ffffff;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    .cut-canvas {
+      width: 100%;
+      height: auto;
+      background: #0f172a;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      display: block;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-blue-600 selection:text-white">
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <div class="flex min-h-screen">
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 z-30 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 bg-slate-900 text-slate-300 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shrink-0">
+      <div class="h-16 px-6 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+            <i data-lucide="layers" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <span class="font-bold text-white tracking-tight text-lg block leading-none">NexusERP</span>
+            <span class="text-[11px] text-slate-400 font-medium">Suite Operativa + Sime2026</span>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="px-4 py-4 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+        <div>
+          <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Principal</p>
+          <nav class="space-y-1">
+            <button data-nav="dashboard" onclick="switchModule('dashboard')" class="nav-item active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              <span>Dashboard General</span>
+            </button>
+          </nav>
+        </div>
+
+        <div>
+          <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Operaciones &amp; Cadena</p>
+          <nav class="space-y-1">
+            <button data-nav="sales" onclick="switchModule('sales')" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <span class="flex items-center gap-3">
+                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                <span>Ventas &amp; Cotizaciones</span>
+              </span>
+              <span id="sidebar-sales-count" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold">0</span>
+            </button>
+            <button data-nav="purchases" onclick="switchModule('purchases')" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="truck" class="w-4 h-4"></i>
+              <span>Compras &amp; Proveedores</span>
+            </button>
+            <button data-nav="inventory" onclick="switchModule('inventory')" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <span class="flex items-center gap-3">
+                <i data-lucide="package" class="w-4 h-4"></i>
+                <span>Inventario &amp; Tableros</span>
+              </span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">CAM/CSV</span>
+            </button>
+            <button data-nav="production" onclick="switchModule('production')" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="factory" class="w-4 h-4"></i>
+              <span>Producción &amp; Órdenes</span>
+            </button>
+            <button data-nav="corte2d" onclick="switchModule('corte2d')" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <span class="flex items-center gap-3">
+                <i data-lucide="scissors" class="w-4 h-4"></i>
+                <span>Optimizador Corte 2D</span>
+              </span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-semibold">2D</span>
+            </button>
+          </nav>
+        </div>
+
+        <div>
+          <p class="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Gestión Corporativa</p>
+          <nav class="space-y-1">
+            <button data-nav="accounting" onclick="switchModule('accounting')" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="calculator" class="w-4 h-4"></i>
+              <span>Contabilidad &amp; Finanzas</span>
+            </button>
+            <button data-nav="hr" onclick="switchModule('hr')" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="users" class="w-4 h-4"></i>
+              <span>Recursos Humanos</span>
+            </button>
+            <button data-nav="admin" onclick="switchModule('admin')" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>Administración</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Footer Info & Reset Data -->
+      <div class="p-4 border-t border-slate-800 space-y-2.5 bg-slate-900/90">
+        <div class="flex items-center gap-3 px-2">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-sky-500 flex items-center justify-center text-white text-xs font-bold">
+            S26
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold text-white truncate">Sime2026 + NexusERP</p>
+            <p class="text-[11px] text-slate-400 truncate">Persistencia Local Activa</p>
+          </div>
+        </div>
+        <button onclick="resetDemoData()" class="w-full flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 py-1.5 rounded-lg transition-colors">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Restaurar datos de ejemplo</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Top Header -->
+      <header class="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <h1 id="page-title" class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Dashboard General</h1>
+            <p id="page-subtitle" class="text-xs text-slate-500 hidden sm:block">Resumen ejecutivo en tiempo real de operaciones, módulos, corte 2D y finanzas</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button onclick="switchModule('corte2d')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs sm:text-sm font-semibold transition-colors border border-sky-200/70">
+            <i data-lucide="scissors" class="w-4 h-4"></i>
+            <span class="hidden md:inline">Corte 2D</span>
+          </button>
+          <button onclick="openScannerModal('lookup')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs sm:text-sm font-semibold transition-colors border border-blue-200/70">
+            <i data-lucide="scan-barcode" class="w-4 h-4"></i>
+            <span class="hidden md:inline">Escanear Código</span>
+          </button>
+          <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>GitHub Ready</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Module Viewport -->
+      <main id="app-viewport" class="flex-1 p-4 sm:p-8 max-w-[1600px] w-full mx-auto space-y-6"></main>
+    </div>
+  </div>
+
+  <!-- MODAL 1: Barcode Scanner Modal -->
+  <div id="scanner-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="scan-barcode" class="w-5 h-5 text-blue-400"></i>
+          <div>
+            <h3 class="font-bold text-base">Escáner de Código de Barras</h3>
+            <p class="text-xs text-slate-400">Apunta la cámara del teléfono o webcam al código EAN / UPC / QR</p>
+          </div>
+        </div>
+        <button onclick="closeScannerModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 min-h-[250px] flex flex-col items-center justify-center">
+          <div id="qr-reader" class="w-full"></div>
+          <div id="camera-status" class="text-center p-4 text-slate-400 text-xs space-y-1">
+            <i data-lucide="camera" class="w-7 h-7 mx-auto text-blue-400 mb-1"></i>
+            <p id="camera-status-text">Iniciando cámara...</p>
+            <p class="text-[11px] text-slate-500">Si usas HTTPS / GitHub Pages, el navegador solicitará permiso de cámara.</p>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-slate-700">Ingresar o pegar código manualmente</label>
+          <div class="flex gap-2">
+            <input id="manual-barcode-input" type="text" placeholder="Ej. 7501055300012 o MEL-18-BLA" class="flex-1 px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onclick="handleScannedCode(document.getElementById('manual-barcode-input').value.trim())" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Buscar
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100">
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Pruebas rápidas sin cámara</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="simulateScan('existing')" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-colors">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+              <span>Simular Existente</span>
+            </button>
+            <button onclick="simulateScan('new')" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Simular Código Nuevo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Product Create / Edit Modal -->
+  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 id="product-modal-title" class="font-bold text-base text-slate-900">Nuevo Ítem de Inventario</h3>
+        <button onclick="closeProductModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="product-form" onsubmit="saveProductFromForm(event)" class="p-6 space-y-4">
+        <input type="hidden" id="prod-edit-id" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Código de Barras / SKU *</label>
+            <div class="flex gap-1.5">
+              <input id="prod-barcode" type="text" required placeholder="7501000000000" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button type="button" onclick="generateRandomBarcode()" title="Generar código" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">
+                <i data-lucide="wand-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo de Ítem *</label>
+            <select id="prod-type" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="Tablero / Melamina">Tablero / Melamina</option>
+              <option value="Producto Terminado">Producto Terminado</option>
+              <option value="Insumo / Materia Prima">Insumo / Materia Prima</option>
+              <option value="Empaque / Suministro">Empaque / Suministro</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Producto, Tablero o Insumo *</label>
+          <input id="prod-name" type="text" required placeholder="Ej. Melamina Roble Natural 18mm" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Ancho Tablero (mm)</label>
+            <input id="prod-board-w" type="number" min="0" value="2440" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Alto Tablero (mm)</label>
+            <input id="prod-board-h" type="number" min="0" value="1220" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Inicial *</label>
+            <input id="prod-stock" type="number" min="0" required value="10" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Mínimo *</label>
+            <input id="prod-min-stock" type="number" min="0" required value="5" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. ($) *</label>
+            <input id="prod-cost" type="number" step="0.01" min="0" required value="45.00" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Precio de Venta Unitario ($)</label>
+          <input id="prod-price" type="number" step="0.01" min="0" value="75.00" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+          <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm">Guardar en Inventario</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Stock Adjustment Modal (When Scanned Item Exists) -->
+  <div id="stock-adjust-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200 fade-in">
+      <div class="px-6 py-4 bg-emerald-600 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="package-check" class="w-5 h-5"></i>
+          <h3 class="font-bold text-base">Producto Detectado</h3>
+        </div>
+        <button onclick="closeStockAdjustModal()" class="p-1 rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="stock-adjust-body" class="p-6 space-y-4"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. STATE & DEFAULT DEMO DATA (MERGED NEXUSERP + SIME2026)
+    // =========================================================================
+    const STORAGE_KEY = 'nexuserp_sime2026_state_v1';
+
+    const DEFAULT_STATE = {
+      activeModule: 'dashboard',
+      inventory: [
+        { id: 'MEL-18-BLA', barcode: 'MEL-18-BLA', name: 'Melamina Blanca 18mm', type: 'Tablero / Melamina', boardW: 2440, boardH: 1220, stock: 28, minStock: 10, cost: 45.00, price: 78.00 },
+        { id: 'MEL-18-ROB', barcode: 'MEL-18-ROB', name: 'Melamina Roble Natural 18mm', type: 'Tablero / Melamina', boardW: 2440, boardH: 1220, stock: 16, minStock: 10, cost: 58.00, price: 96.00 },
+        { id: 'MEL-18-GRI', barcode: 'MEL-18-GRI', name: 'Melamina Gris Grafito 18mm', type: 'Tablero / Melamina', boardW: 2440, boardH: 1220, stock: 12, minStock: 10, cost: 54.00, price: 90.00 },
+        { id: 'MDF-15-CRU', barcode: 'MDF-15-CRU', name: 'MDF Crudo 15mm', type: 'Tablero / Melamina', boardW: 2440, boardH: 1220, stock: 8, minStock: 10, cost: 34.00, price: 58.00 },
+        { id: 'PRD-103', barcode: '7501055300036', name: 'Módulo Cocina Integral Compacto', type: 'Producto Terminado', boardW: 0, boardH: 0, stock: 14, minStock: 5, cost: 310.00, price: 540.00 },
+        { id: 'PRD-105', barcode: '7501055300050', name: 'Cantos / Herrajes / Tornillería Pack', type: 'Empaque / Suministro', boardW: 0, boardH: 0, stock: 120, minStock: 30, cost: 6.50, price: 14.00 }
+      ],
+      sales: [
+        { id: 'VNT-8041', date: '2026-11-19', client: 'Cocina Modular Residencia Norte', productId: 'PRD-103', productName: 'Módulo Cocina Integral Compacto', qty: 4, total: 2160.00, status: 'Facturada' },
+        { id: 'VNT-8042', date: '2026-11-20', client: 'Clóset Principal Suite B', productId: 'PRD-103', productName: 'Módulo Cocina Integral Compacto', qty: 2, total: 1080.00, status: 'Pagada' },
+        { id: 'VNT-8043', date: '2026-11-20', client: 'Mobiliario Oficina Central', productId: 'PRD-105', productName: 'Cantos / Herrajes / Tornillería Pack', qty: 10, total: 140.00, status: 'Pendiente' }
+      ],
+      purchases: [
+        { id: 'CMP-3012', date: '2026-11-18', supplier: 'Tableros del Sur C.A.', productId: 'MEL-18-BLA', productName: 'Melamina Blanca 18mm', qty: 20, total: 900.00, status: 'Recibida' },
+        { id: 'CMP-3013', date: '2026-11-20', supplier: 'Maderas & Cantos Andinos', productId: 'MEL-18-ROB', productName: 'Melamina Roble Natural 18mm', qty: 12, total: 696.00, status: 'Recibida' }
+      ],
+      productionOrders: [
+        { id: 'ORD-101', project: 'Cocina Modular Residencia Norte', material: 'Melamina Blanca 18mm', batchSize: 32, boardsUsed: 4, inputId: 'MEL-18-BLA', inputName: 'Melamina Blanca 18mm', inputQty: 4, progress: 65, status: 'En Corte', cost: 238.40 },
+        { id: 'ORD-102', project: 'Clóset Principal Suite B', material: 'Melamina Roble Natural 18mm', batchSize: 22, boardsUsed: 3, inputId: 'MEL-18-ROB', inputName: 'Melamina Roble Natural 18mm', inputQty: 3, progress: 100, status: 'Listo', cost: 215.00 },
+        { id: 'ORD-103', project: 'Mobiliario Oficina Central', material: 'Melamina Gris Grafito 18mm', batchSize: 40, boardsUsed: 5, inputId: 'MEL-18-GRI', inputName: 'Melamina Gris Grafito 18mm', inputQty: 5, progress: 0, status: 'Cotizado', cost: 342.80 }
+      ],
+      accounting: [
+        { id: 'AST-001', date: '2026-11-18', concept: 'Compra Tableros - Tableros del Sur C.A. (CMP-3012)', account: 'Inventario / Cuentas por Pagar', type: 'Egreso', amount: 900.00 },
+        { id: 'AST-002', date: '2026-11-19', concept: 'Venta Módulos - Residencia Norte (VNT-8041)', account: 'Cuentas por Cobrar / Ingresos', type: 'Ingreso', amount: 2160.00 },
+        { id: 'AST-003', date: '2026-11-20', concept: 'Venta Módulos - Suite B (VNT-8042)', account: 'Caja / Ventas', type: 'Ingreso', amount: 1080.00 },
+        { id: 'AST-004', date: '2026-11-20', concept: 'Compra Melamina Roble - Maderas Andinos (CMP-3013)', account: 'Inventario / Bancos', type: 'Egreso', amount: 696.00 }
+      ],
+      employees: [
+        { id: 'EMP-01', name: 'Valentina Rojas', role: 'Jefa de Planta & Despiece 2D', department: 'Producción', salary: 2400, status: 'Activo' },
+        { id: 'EMP-02', name: 'Carlos Mendoza', role: 'Contador General', department: 'Contabilidad', salary: 2200, status: 'Activo' },
+        { id: 'EMP-03', name: 'Sofía Herrera', role: 'Coordinadora de Almacén', department: 'Inventario', salary: 1750, status: 'Activo' },
+        { id: 'EMP-04', name: 'Andrés Castellanos', role: 'Asesor de Módulos y Cotizaciones', department: 'Ventas', salary: 1950, status: 'De Vacaciones' }
+      ],
+      roles: [
+        { role: 'Administrador General', users: 2, access: 'Acceso total a todos los módulos, configuración, corte 2D y auditoría.' },
+        { role: 'Operador de Almacén & Corte', users: 4, access: 'Inventario, escaneo de códigos, importación/exportación CSV y planos 2D.' },
+        { role: 'Analista Contable', users: 2, access: 'Contabilidad, reportes financieros, facturas de venta y órdenes de compra.' },
+        { role: 'Diseñador de Mobiliario', users: 3, access: 'Catálogo de módulos estándar, optimizador de corte 2D y envío a órdenes.' }
+      ],
+      monthlySeries: {
+        labels: ['Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov'],
+        sales: [14200, 16800, 15900, 19400, 21800, 24390],
+        expenses: [9800, 11200, 10600, 12900, 13400, 14105]
+      },
+      cut2d: {
+        selectedMaterialId: 'MEL-18-BLA',
+        boardW: 2440,
+        boardH: 1220,
+        kerf: 4,
+        trim: 10,
+        boardCost: 45,
+        edgeCost: 0.80,
+        allowRotate: true,
+        preset: 'cocina_bajo',
+        projectName: '',
+        parts: [
+          { name: 'Lateral módulo', w: 720, h: 560, qty: 4 },
+          { name: 'Base / Techo', w: 764, h: 560, qty: 4 },
+          { name: 'Estante interior', w: 760, h: 520, qty: 4 },
+          { name: 'Frente cajón', w: 794, h: 175, qty: 4 },
+          { name: 'Zócalo', w: 800, h: 100, qty: 2 }
+        ]
+      }
+    };
+
+    const MODULE_CATALOG = {
+      cocina_bajo: [
+        { name: 'Bajo Cocina - Lateral', w: 720, h: 560, qty: 2 },
+        { name: 'Bajo Cocina - Base/Amarre', w: 764, h: 560, qty: 2 },
+        { name: 'Bajo Cocina - Estante', w: 760, h: 500, qty: 1 },
+        { name: 'Bajo Cocina - Puerta', w: 715, h: 396, qty: 2 },
+        { name: 'Bajo Cocina - Zócalo', w: 800, h: 100, qty: 1 }
+      ],
+      cocina_alto: [
+        { name: 'Alacena - Lateral', w: 700, h: 320, qty: 2 },
+        { name: 'Alacena - Base/Techo', w: 764, h: 320, qty: 2 },
+        { name: 'Alacena - Estante', w: 760, h: 290, qty: 2 },
+        { name: 'Alacena - Puerta', w: 695, h: 396, qty: 2 }
+      ],
+      closet_base: [
+        { name: 'Clóset - Lateral', w: 2000, h: 550, qty: 2 },
+        { name: 'Clóset - Base/Techo', w: 864, h: 550, qty: 2 },
+        { name: 'Clóset - División', w: 1964, h: 520, qty: 1 },
+        { name: 'Clóset - Entrepaño', w: 423, h: 500, qty: 4 },
+        { name: 'Clóset - Puerta', w: 1990, h: 446, qty: 2 }
+      ],
+      cajonera_4: [
+        { name: 'Cajonera - Lateral', w: 720, h: 500, qty: 2 },
+        { name: 'Cajonera - Base/Techo', w: 564, h: 500, qty: 2 },
+        { name: 'Cajonera - Frente Gaveta', w: 594, h: 175, qty: 4 },
+        { name: 'Cajonera - Lat. Cajón', w: 450, h: 130, qty: 8 },
+        { name: 'Cajonera - Trasera Cajón', w: 510, h: 130, qty: 4 }
+      ],
+      escritorio_of: [
+        { name: 'Escritorio - Cubierta', w: 1400, h: 600, qty: 1 },
+        { name: 'Escritorio - Costado', w: 732, h: 580, qty: 2 },
+        { name: 'Escritorio - Faldón', w: 1364, h: 350, qty: 1 }
+      ]
+    };
+
+    const CUT_PALETTE = [
+      '#38bdf8', '#34d399', '#fbbf24', '#f87171',
+      '#a78bfa', '#fb923c', '#2dd4bf', '#f472b6'
+    ];
+
+    let state = loadState();
+    let dashboardChartInstance = null;
+    let html5QrCodeScanner = null;
+    let isScannerRunning = false;
+    let lastCutSolution = [];
+    let lastCutSummary = { boards: 0, pieces: 0, cost: 0 };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_STATE);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(DEFAULT_STATE),
+          ...parsed,
+          cut2d: { ...structuredClone(DEFAULT_STATE.cut2d), ...(parsed.cut2d || {}) }
+        };
+      } catch (e) {
+        return structuredClone(DEFAULT_STATE);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('No se pudo guardar en localStorage:', e);
+      }
+    }
+
+    function resetDemoData() {
+      if (!confirm('¿Deseas restaurar todos los datos de ejemplo del sistema ERP y Corte 2D?')) return;
+      state = structuredClone(DEFAULT_STATE);
+      saveState();
+      render();
+      showToast('Datos restaurados a valores iniciales.', 'info');
+    }
+
+    // =========================================================================
+    // 2. UI HELPERS (FORMATTERS, TOASTS, SOUND BEEP)
+    // =========================================================================
+    const fmtMoney = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n || 0));
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-slate-900 border-emerald-500 text-white',
+        warning: 'bg-slate-900 border-amber-500 text-white',
+        error: 'bg-slate-900 border-rose-500 text-white',
+        info: 'bg-slate-900 border-blue-500 text-white'
+      };
+      const icons = {
+        success: 'check-circle-2',
+        warning: 'alert-triangle',
+        error: 'x-circle',
+        info: 'info'
+      };
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border-l-4 shadow-xl text-xs sm:text-sm font-medium fade-in ${colors[type] || colors.info}`;
+      toast.innerHTML = `<i data-lucide="${icons[type] || 'info'}" class="w-4 h-4 shrink-0 text-blue-400"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 3200);
+    }
+
+    function playScanBeep() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } catch (_) {}
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      sidebar.classList.toggle('-translate-x-full');
+      backdrop.classList.toggle('hidden');
+    }
+
+    function switchModule(moduleName) {
+      state.activeModule = moduleName;
+      saveState();
+
+      document.querySelectorAll('.nav-item').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.nav === moduleName);
+      });
+
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+
+      render();
+    }
+
+    // =========================================================================
+    // 3. MODULE RENDERERS
+    // =========================================================================
+    const MODULE_META = {
+      dashboard: { title: 'Dashboard General', subtitle: 'Visión ejecutiva de ingresos, tableros, órdenes de producción y corte 2D' },
+      sales: { title: 'Ventas & Cotizaciones', subtitle: 'Registro de pedidos con descuento automático de stock y asiento contable' },
+      purchases: { title: 'Compras & Proveedores', subtitle: 'Recepción de tableros e insumos que incrementan existencias y registran egresos' },
+      inventory: { title: 'Inventario, Tableros & Escáner', subtitle: 'Control de existencias, cámara de códigos de barras e importación/exportación CSV' },
+      production: { title: 'Producción & Órdenes de Taller', subtitle: 'Seguimiento de órdenes de fabricación, despiece de módulos y avance de lotes' },
+      corte2d: { title: 'Optimizador de Corte 2D (Sime2026)', subtitle: 'Cálculo de despiece, planos guillotina en canvas, catálogo de módulos y envío directo a ERP' },
+      accounting: { title: 'Contabilidad & Finanzas', subtitle: 'Libro mayor simplificado, flujo de ingresos y egresos' },
+      hr: { title: 'Recursos Humanos', subtitle: 'Directorio de personal, departamentos y nómina estimada' },
+      admin: { title: 'Administración & Roles', subtitle: 'Permisos por perfil operativo y estado del sistema' }
+    };
+
+    function render() {
+      const meta = MODULE_META[state.activeModule] || MODULE_META.dashboard;
+      document.getElementById('page-title').textContent = meta.title;
+      document.getElementById('page-subtitle').textContent = meta.subtitle;
+
+      const badgeEl = document.getElementById('sidebar-sales-count');
+      if (badgeEl) badgeEl.textContent = String(state.sales.length);
+
+      const viewport = document.getElementById('app-viewport');
+      viewport.className = 'flex-1 p-4 sm:p-8 max-w-[1600px] w-full mx-auto space-y-6 fade-in';
+
+      if (dashboardChartInstance) {
+        dashboardChartInstance.destroy();
+        dashboardChartInstance = null;
+      }
+
+      switch (state.activeModule) {
+        case 'dashboard':
+          viewport.innerHTML = renderDashboard();
+          initDashboardChart();
+          break;
+        case 'sales':
+          viewport.innerHTML = renderSales();
+          break;
+        case 'purchases':
+          viewport.innerHTML = renderPurchases();
+          break;
+        case 'inventory':
+          viewport.innerHTML = renderInventory();
+          break;
+        case 'production':
+          viewport.innerHTML = renderProduction();
+          break;
+        case 'corte2d':
+          viewport.innerHTML = renderCorte2D();
+          renderCutPartsTable();
+          runCutOptimization(false);
+          break;
+        case 'accounting':
+          viewport.innerHTML = renderAccounting();
+          break;
+        case 'hr':
+          viewport.innerHTML = renderHR();
+          break;
+        case 'admin':
+          viewport.innerHTML = renderAdmin();
+          break;
+        default:
+          viewport.innerHTML = renderDashboard();
+      }
+
+      lucide.createIcons();
+    }
+
+    function kpiCard(label, value, badge, badgeColor, icon, iconBg) {
+      return `
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">${label}</p>
+              <p class="text-2xl font-bold text-slate-900 mt-1.5">${value}</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center shrink-0">
+              <i data-lucide="${icon}" class="w-5 h-5"></i>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="px-2 py-0.5 rounded-full font-semibold ${badgeColor}">${badge}</span>
+            <span class="text-slate-400">En tiempo real</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDashboard() {
+      const totalSales = state.sales.reduce((acc, s) => acc + Number(s.total || 0), 0);
+      const totalUnitsStock = state.inventory.reduce((acc, i) => acc + Number(i.stock || 0), 0);
+      const inventoryValuation = state.inventory.reduce((acc, i) => acc + (Number(i.stock) * Number(i.cost)), 0);
+      const lowStockCount = state.inventory.filter((i) => Number(i.stock) <= Number(i.minStock)).length;
+      const activeOrders = state.productionOrders.filter((o) => o.status !== 'Listo').length;
+
+      return `
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+          ${kpiCard('Ventas Registradas', fmtMoney(totalSales), `${state.sales.length} operaciones`, 'bg-emerald-50 text-emerald-700', 'trending-up', 'bg-emerald-50 text-emerald-600')}
+          ${kpiCard('Valor del Inventario', fmtMoney(inventoryValuation), `${totalUnitsStock} uds · ${lowStockCount} bajo`, lowStockCount > 0 ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700', 'boxes', 'bg-blue-50 text-blue-600')}
+          ${kpiCard('Órdenes de Taller', `${activeOrders} activas`, `${state.productionOrders.length} totales`, 'bg-sky-50 text-sky-700', 'scissors', 'bg-sky-50 text-sky-600')}
+          ${kpiCard('Equipo & Nómina', `${state.employees.length} activos`, 'Eficiencia 2D: 86.4%', 'bg-purple-50 text-purple-700', 'users', 'bg-purple-50 text-purple-600')}
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div class="xl:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-6">
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div>
+                  <h2 class="font-bold text-slate-900 text-base">Flujo Mensual: Ingresos vs. Egresos</h2>
+                  <p class="text-xs text-slate-500">Comparativa histórica de desempeño financiero (USD)</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-medium">
+                  <span class="flex items-center gap-1.5 text-blue-600"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>Ingresos</span>
+                  <span class="flex items-center gap-1.5 text-slate-400"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>Egresos</span>
+                </div>
+              </div>
+              <div class="h-60">
+                <canvas id="dashboard-finance-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-slate-900 text-sm">Últimas Órdenes de Producción y Módulos</h3>
+                <button onclick="switchModule('production')" class="text-xs font-semibold text-blue-600 hover:underline">Ver todas</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                      <th class="py-2.5 px-3">Orden</th>
+                      <th class="py-2.5 px-3">Proyecto / Cliente</th>
+                      <th class="py-2.5 px-3">Material</th>
+                      <th class="py-2.5 px-3 text-right">Tableros</th>
+                      <th class="py-2.5 px-3">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    ${state.productionOrders.slice(0, 4).map((o) => `
+                      <tr>
+                        <td class="py-2.5 px-3 font-mono font-bold text-sky-600">${o.id}</td>
+                        <td class="py-2.5 px-3 font-semibold text-slate-800">${o.project}</td>
+                        <td class="py-2.5 px-3 text-slate-600">${o.material}</td>
+                        <td class="py-2.5 px-3 text-right font-semibold">${o.boardsUsed}</td>
+                        <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${o.status === 'Listo' ? 'bg-emerald-50 text-emerald-700' : o.status === 'En Corte' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}">${o.status}</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="font-bold text-slate-900 text-base">Alertas de Inventario y Tableros</h2>
+                <button onclick="switchModule('inventory')" class="text-xs font-semibold text-blue-600 hover:underline">Ver todo</button>
+              </div>
+              <div class="space-y-3">
+                ${state.inventory.map((item) => {
+                  const isLow = item.stock <= item.minStock;
+                  return `
+                    <div class="p-3 rounded-xl border ${isLow ? 'border-amber-200 bg-amber-50/50' : 'border-slate-100 bg-slate-50/60'} flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-xs font-bold text-slate-800 truncate">${item.name}</p>
+                        <p class="text-[11px] text-slate-500 font-mono">${item.barcode}${item.boardW ? ` · ${item.boardW}×${item.boardH}` : ''}</p>
+                      </div>
+                      <div class="text-right shrink-0">
+                        <span class="text-xs font-bold ${isLow ? 'text-amber-700' : 'text-slate-700'}">${item.stock} uds</span>
+                        <p class="text-[10px] text-slate-400">Mín: ${item.minStock}</p>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="mt-5 space-y-2">
+              <button onclick="switchModule('corte2d')" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors">
+                <i data-lucide="scissors" class="w-4 h-4"></i>
+                <span>Abrir Optimizador de Corte 2D</span>
+              </button>
+              <button onclick="openScannerModal('lookup')" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors">
+                <i data-lucide="scan-barcode" class="w-4 h-4 text-blue-400"></i>
+                <span>Abrir Escáner de Códigos</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function initDashboardChart() {
+      const ctx = document.getElementById('dashboard-finance-chart');
+      if (!ctx || typeof Chart === 'undefined') return;
+      dashboardChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: state.monthlySeries.labels,
+          datasets: [
+            {
+              label: 'Ingresos',
+              data: state.monthlySeries.sales,
+              backgroundColor: '#2563eb',
+              borderRadius: 8,
+              barPercentage: 0.55
+            },
+            {
+              label: 'Egresos',
+              data: state.monthlySeries.expenses,
+              backgroundColor: '#cbd5e1',
+              borderRadius: 8,
+              barPercentage: 0.55
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: { callback: (v) => '$' + v.toLocaleString() }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // --- SALES MODULE ---
+    function renderSales() {
+      const sellableItems = state.inventory.filter((i) => i.price > 0 || i.type === 'Producto Terminado');
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onsubmit="createSale(event)" class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4 h-fit">
+            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+              <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i>
+              <span>Nueva Venta / Pedido</span>
+            </h2>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Cliente o Proyecto *</label>
+              <input id="sale-client" type="text" required placeholder="Ej. Cocina Integral Residencia Sur" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Producto o Ítem *</label>
+              <select id="sale-product" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+                ${sellableItems.map((p) => `<option value="${p.id}">${p.name} — ${fmtMoney(p.price || p.cost * 1.4)} (Stock: ${p.stock})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad *</label>
+              <input id="sale-qty" type="number" min="1" required value="1" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Registrar Venta y Descontar Stock
+            </button>
+          </form>
+
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="font-bold text-slate-900 text-base">Historial de Ventas</h2>
+              <span class="text-xs font-semibold text-slate-500">${state.sales.length} registros</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th class="py-3 px-4">Folio</th>
+                    <th class="py-3 px-4">Fecha</th>
+                    <th class="py-3 px-4">Cliente / Proyecto</th>
+                    <th class="py-3 px-4">Producto</th>
+                    <th class="py-3 px-4 text-right">Cant.</th>
+                    <th class="py-3 px-4 text-right">Total</th>
+                    <th class="py-3 px-4">Estado</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                  ${state.sales.map((s) => `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-3 px-4 font-mono text-xs font-semibold text-blue-600">${s.id}</td>
+                      <td class="py-3 px-4 text-xs text-slate-500">${s.date}</td>
+                      <td class="py-3 px-4 font-medium text-slate-800">${s.client}</td>
+                      <td class="py-3 px-4 text-xs text-slate-600">${s.productName}</td>
+                      <td class="py-3 px-4 text-right font-semibold">${s.qty}</td>
+                      <td class="py-3 px-4 text-right font-bold text-emerald-700">${fmtMoney(s.total)}</td>
+                      <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">${s.status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createSale(e) {
+      e.preventDefault();
+      const client = document.getElementById('sale-client').value.trim();
+      const prodId = document.getElementById('sale-product').value;
+      const qty = parseInt(document.getElementById('sale-qty').value, 10);
+      const item = state.inventory.find((i) => i.id === prodId);
+
+      if (!item || qty <= 0) return;
+      if (item.stock < qty) {
+        showToast(`Stock insuficiente de "${item.name}" (disponible: ${item.stock}).`, 'error');
+        return;
+      }
+
+      const unitPrice = item.price > 0 ? item.price : Number((item.cost * 1.4).toFixed(2));
+      const total = Number((unitPrice * qty).toFixed(2));
+      const today = new Date().toISOString().slice(0, 10);
+      const folio = `VNT-${Math.floor(8044 + Math.random() * 1900)}`;
+
+      item.stock -= qty;
+      state.sales.unshift({
+        id: folio,
+        date: today,
+        client,
+        productId: item.id,
+        productName: item.name,
+        qty,
+        total,
+        status: 'Facturada'
+      });
+      state.accounting.unshift({
+        id: `AST-${Math.floor(100 + Math.random() * 899)}`,
+        date: today,
+        concept: `Venta ${folio} - ${client}`,
+        account: 'Clientes / Ingresos Operativos',
+        type: 'Ingreso',
+        amount: total
+      });
+      state.monthlySeries.sales[state.monthlySeries.sales.length - 1] += total;
+
+      saveState();
+      render();
+      showToast(`Venta ${folio} registrada. Stock actualizado (-${qty}).`, 'success');
+    }
+
+    // --- PURCHASES MODULE ---
+    function renderPurchases() {
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onsubmit="createPurchase(event)" class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4 h-fit">
+            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+              <i data-lucide="truck" class="w-4 h-4 text-indigo-600"></i>
+              <span>Registrar Compra de Tableros / Insumos</span>
+            </h2>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Proveedor *</label>
+              <input id="purch-supplier" type="text" required placeholder="Ej. Tableros del Sur C.A." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Tablero o Ítem *</label>
+              <select id="purch-product" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+                ${state.inventory.map((p) => `<option value="${p.id}">${p.name} (${p.barcode} · Stock: ${p.stock})</option>`).join('')}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad *</label>
+                <input id="purch-qty" type="number" min="1" required value="10" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Costo Unit. ($) *</label>
+                <input id="purch-cost" type="number" step="0.01" min="0.01" required value="45.00" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+              </div>
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Ingresar a Inventario y Contabilidad
+            </button>
+          </form>
+
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 class="font-bold text-slate-900 text-base">Órdenes de Compra</h2>
+              <span class="text-xs font-semibold text-slate-500">${state.purchases.length} órdenes</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th class="py-3 px-4">Orden</th>
+                    <th class="py-3 px-4">Fecha</th>
+                    <th class="py-3 px-4">Proveedor</th>
+                    <th class="py-3 px-4">Ítem</th>
+                    <th class="py-3 px-4 text-right">Cant.</th>
+                    <th class="py-3 px-4 text-right">Total</th>
+                    <th class="py-3 px-4">Estado</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                  ${state.purchases.map((p) => `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-3 px-4 font-mono text-xs font-semibold text-indigo-600">${p.id}</td>
+                      <td class="py-3 px-4 text-xs text-slate-500">${p.date}</td>
+                      <td class="py-3 px-4 font-medium text-slate-800">${p.supplier}</td>
+                      <td class="py-3 px-4 text-xs text-slate-600">${p.productName}</td>
+                      <td class="py-3 px-4 text-right font-semibold">+${p.qty}</td>
+                      <td class="py-3 px-4 text-right font-bold text-slate-800">${fmtMoney(p.total)}</td>
+                      <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">${p.status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function createPurchase(e) {
+      e.preventDefault();
+      const supplier = document.getElementById('purch-supplier').value.trim();
+      const prodId = document.getElementById('purch-product').value;
+      const qty = parseInt(document.getElementById('purch-qty').value, 10);
+      const unitCost = parseFloat(document.getElementById('purch-cost').value);
+      const item = state.inventory.find((i) => i.id === prodId);
+
+      if (!item || qty <= 0 || isNaN(unitCost)) return;
+
+      const total = Number((qty * unitCost).toFixed(2));
+      const today = new Date().toISOString().slice(0, 10);
+      const folio = `CMP-${Math.floor(3014 + Math.random() * 1900)}`;
+
+      item.stock += qty;
+      item.cost = unitCost;
+      state.purchases.unshift({
+        id: folio,
+        date: today,
+        supplier,
+        productId: item.id,
+        productName: item.name,
+        qty,
+        total,
+        status: 'Recibida'
+      });
+      state.accounting.unshift({
+        id: `AST-${Math.floor(100 + Math.random() * 899)}`,
+        date: today,
+        concept: `Compra ${folio} - ${supplier}`,
+        account: 'Inventario / Cuentas por Pagar',
+        type: 'Egreso',
+        amount: total
+      });
+      state.monthlySeries.expenses[state.monthlySeries.expenses.length - 1] += total;
+
+      saveState();
+      render();
+      showToast(`Compra ${folio} ingresada al inventario (+${qty}).`, 'success');
+    }
+
+    // --- INVENTORY, BOARDS, BARCODE & CSV MODULE ---
+    function renderInventory() {
+      return `
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-2xs space-y-5">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 class="font-bold text-slate-900 text-base">Catálogo de Tableros, Productos e Insumos</h2>
+              <p class="text-xs text-slate-500">Escanea códigos con cámara, importa/exporta CSV o configura tableros para el Optimizador 2D</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="csv-import-input" type="file" accept=".csv,text/csv" onchange="importInventoryCSV(event)" class="hidden" />
+              <button onclick="document.getElementById('csv-import-input').click()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-semibold border border-slate-300/80 transition-colors">
+                <i data-lucide="file-up" class="w-4 h-4 text-blue-600"></i>
+                <span>Importar CSV</span>
+              </button>
+              <button onclick="exportInventoryCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-semibold border border-slate-300/80 transition-colors">
+                <i data-lucide="file-down" class="w-4 h-4 text-indigo-600"></i>
+                <span>Exportar CSV</span>
+              </button>
+              <button onclick="openScannerModal('inventory')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+                <span>Escanear Código</span>
+              </button>
+              <button onclick="openProductModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Nuevo Ítem</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+              <input id="inv-search" oninput="filterInventoryTable()" type="text" placeholder="Buscar por nombre, SKU, formato o código de barras..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <select id="inv-filter-type" onchange="filterInventoryTable()" class="px-3.5 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+              <option value="ALL">Todos los tipos</option>
+              <option value="Tablero / Melamina">Tablero / Melamina</option>
+              <option value="Producto Terminado">Producto Terminado</option>
+              <option value="Insumo / Materia Prima">Insumo / Materia Prima</option>
+              <option value="Empaque / Suministro">Empaque / Suministro</option>
+            </select>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <th class="py-3 px-4">Código / SKU</th>
+                  <th class="py-3 px-4">Nombre / Formato</th>
+                  <th class="py-3 px-4">Tipo</th>
+                  <th class="py-3 px-4 text-right">Stock</th>
+                  <th class="py-3 px-4 text-right">Costo</th>
+                  <th class="py-3 px-4 text-right">Precio Venta</th>
+                  <th class="py-3 px-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-tbody" class="divide-y divide-slate-100 text-sm">
+                ${renderInventoryRows(state.inventory)}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInventoryRows(items) {
+      if (!items.length) {
+        return `<tr><td colspan="7" class="py-8 text-center text-slate-400 text-sm">No se encontraron artículos con ese filtro.</td></tr>`;
+      }
+      return items.map((item) => {
+        const isLow = item.stock <= item.minStock;
+        const dimLabel = item.boardW && item.boardH ? ` · ${item.boardW}×${item.boardH} mm` : '';
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-3.5 px-4 font-mono text-xs font-semibold text-slate-700">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+                <i data-lucide="barcode" class="w-3.5 h-3.5 text-slate-500"></i>
+                ${item.barcode}
+              </span>
+            </td>
+            <td class="py-3.5 px-4">
+              <p class="font-semibold text-slate-900">${item.name}</p>
+              <p class="text-[11px] text-slate-400">${item.id}${dimLabel} · Stock mín: ${item.minStock}</p>
+            </td>
+            <td class="py-3.5 px-4 text-xs">
+              <span class="px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-700">${item.type}</span>
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <span class="font-bold ${isLow ? 'text-amber-600' : 'text-emerald-700'}">${item.stock}</span>
+              ${isLow ? '<span class="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">BAJO</span>' : ''}
+            </td>
+            <td class="py-3.5 px-4 text-right text-slate-700">${fmtMoney(item.cost)}</td>
+            <td class="py-3.5 px-4 text-right font-semibold text-slate-900">${item.price > 0 ? fmtMoney(item.price) : '—'}</td>
+            <td class="py-3.5 px-4 text-center">
+              <div class="inline-flex items-center gap-1">
+                ${item.boardW && item.boardH ? `
+                  <button onclick="useBoardInOptimizer('${item.id}')" title="Usar tablero en Corte 2D" class="p-1.5 rounded-lg text-sky-600 hover:bg-sky-50">
+                    <i data-lucide="scissors" class="w-4 h-4"></i>
+                  </button>
+                ` : ''}
+                <button onclick="quickAdjustStock('${item.id}', 1)" title="Sumar 1 unidad" class="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50">
+                  <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                </button>
+                <button onclick="openProductModal('${item.id}')" title="Editar ítem" class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function useBoardInOptimizer(itemId) {
+      const board = state.inventory.find((i) => i.id === itemId);
+      if (!board) return;
+      state.cut2d.selectedMaterialId = board.id;
+      if (board.boardW) state.cut2d.boardW = board.boardW;
+      if (board.boardH) state.cut2d.boardH = board.boardH;
+      if (board.cost) state.cut2d.boardCost = board.cost;
+      saveState();
+      switchModule('corte2d');
+      showToast(`Tablero "${board.name}" cargado en Optimizador 2D.`, 'info');
+    }
+
+    function filterInventoryTable() {
+      const q = (document.getElementById('inv-search')?.value || '').toLowerCase().trim();
+      const type = document.getElementById('inv-filter-type')?.value || 'ALL';
+      const filtered = state.inventory.filter((item) => {
+        const matchesType = type === 'ALL' || item.type === type;
+        const matchesQuery = !q ||
+          item.name.toLowerCase().includes(q) ||
+          item.barcode.toLowerCase().includes(q) ||
+          item.id.toLowerCase().includes(q) ||
+          `${item.boardW}x${item.boardH}`.includes(q);
+        return matchesType && matchesQuery;
+      });
+      const tbody = document.getElementById('inventory-tbody');
+      if (tbody) {
+        tbody.innerHTML = renderInventoryRows(filtered);
+        lucide.createIcons();
+      }
+    }
+
+    function quickAdjustStock(id, delta) {
+      const item = state.inventory.find((i) => i.id === id);
+      if (!item) return;
+      if (item.stock + delta < 0) {
+        showToast('El stock no puede ser menor a 0.', 'error');
+        return;
+      }
+      item.stock += delta;
+      saveState();
+      render();
+      showToast(`${item.name}: stock actualizado a ${item.stock} uds.`, 'success');
+    }
+
+    // =========================================================================
+    // 4. BARCODE SCANNER & PRODUCT MODAL LOGIC
+    // =========================================================================
+    function openScannerModal() {
+      const modal = document.getElementById('scanner-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.getElementById('manual-barcode-input').value = '';
+      lucide.createIcons();
+      startCameraScanner();
+    }
+
+    async function startCameraScanner() {
+      const statusText = document.getElementById('camera-status-text');
+      const statusBox = document.getElementById('camera-status');
+      statusBox.classList.remove('hidden');
+
+      if (typeof Html5Qrcode === 'undefined') {
+        statusText.textContent = 'Librería de cámara no cargada. Usa el campo manual o los botones de simulación.';
+        return;
+      }
+
+      try {
+        if (!html5QrCodeScanner) {
+          html5QrCodeScanner = new Html5Qrcode('qr-reader');
+        }
+        if (isScannerRunning) return;
+
+        statusText.textContent = 'Solicitando acceso a la cámara...';
+        await html5QrCodeScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 240, height: 140 } },
+          (decodedText) => {
+            handleScannedCode(decodedText);
+          },
+          () => {}
+        );
+        isScannerRunning = true;
+        statusBox.classList.add('hidden');
+      } catch (err) {
+        statusText.textContent = 'Cámara no disponible o permiso denegado. Puedes escribir el código o simular un escaneo abajo.';
+      }
+    }
+
+    async function stopCameraScanner() {
+      if (html5QrCodeScanner && isScannerRunning) {
+        try {
+          await html5QrCodeScanner.stop();
+          await html5QrCodeScanner.clear();
+        } catch (_) {}
+        isScannerRunning = false;
+      }
+    }
+
+    function closeScannerModal() {
+      stopCameraScanner();
+      const modal = document.getElementById('scanner-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function simulateScan(mode) {
+      if (mode === 'existing' && state.inventory.length > 0) {
+        const sample = state.inventory[0];
+        handleScannedCode(sample.barcode);
+      } else {
+        const randomCode = '75010553' + Math.floor(10000 + Math.random() * 89999);
+        handleScannedCode(randomCode);
+      }
+    }
+
+    function handleScannedCode(rawCode) {
+      if (!rawCode) {
+        showToast('Ingresa o escanea un código de barras válido.', 'warning');
+        return;
+      }
+      playScanBeep();
+      closeScannerModal();
+
+      const existing = state.inventory.find(
+        (i) => i.barcode.toLowerCase() === rawCode.toLowerCase() || i.id.toLowerCase() === rawCode.toLowerCase()
+      );
+      if (existing) {
+        openStockAdjustModal(existing);
+      } else {
+        showToast(`Código ${rawCode} no registrado. Completa los datos para darlo de alta.`, 'info');
+        openProductModal(null, rawCode);
+      }
+    }
+
+    function openStockAdjustModal(item) {
+      const modal = document.getElementById('stock-adjust-modal');
+      const body = document.getElementById('stock-adjust-body');
+      body.innerHTML = `
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-1">
+          <p class="text-xs font-mono text-slate-500">${item.barcode} · ${item.id}</p>
+          <p class="font-bold text-slate-900 text-base">${item.name}</p>
+          <p class="text-xs text-slate-600">Stock actual: <strong class="text-emerald-700 text-sm">${item.stock} unidades</strong></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad a sumar o restar</label>
+          <input id="adjust-qty-input" type="number" min="1" value="5" class="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl" />
+        </div>
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <button onclick="applyScannedStockAdjustment('${item.id}', -1)" class="py-2.5 px-4 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs sm:text-sm font-semibold transition-colors">
+            - Restar Stock
+          </button>
+          <button onclick="applyScannedStockAdjustment('${item.id}', 1)" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-colors">
+            + Sumar Stock
+          </button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeStockAdjustModal() {
+      const modal = document.getElementById('stock-adjust-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function applyScannedStockAdjustment(itemId, sign) {
+      const qty = parseInt(document.getElementById('adjust-qty-input').value, 10);
+      if (isNaN(qty) || qty <= 0) {
+        showToast('Ingresa una cantidad mayor a cero.', 'warning');
+        return;
+      }
+      const item = state.inventory.find((i) => i.id === itemId);
+      if (!item) return;
+
+      const delta = sign * qty;
+      if (item.stock + delta < 0) {
+        showToast('No puedes restar más unidades de las disponibles.', 'error');
+        return;
+      }
+
+      item.stock += delta;
+      saveState();
+      closeStockAdjustModal();
+      if (state.activeModule !== 'inventory') {
+        switchModule('inventory');
+      } else {
+        render();
+      }
+      showToast(`${item.name}: ${delta > 0 ? '+' + delta : delta} uds. (Nuevo stock: ${item.stock}).`, 'success');
+    }
+
+    function openProductModal(editId = null, prefilledBarcode = '') {
+      const modal = document.getElementById('product-modal');
+      const title = document.getElementById('product-modal-title');
+      document.getElementById('prod-edit-id').value = editId || '';
+
+      if (editId) {
+        const item = state.inventory.find((i) => i.id === editId);
+        if (!item) return;
+        title.textContent = 'Editar Ítem de Inventario';
+        document.getElementById('prod-barcode').value = item.barcode;
+        document.getElementById('prod-type').value = item.type;
+        document.getElementById('prod-name').value = item.name;
+        document.getElementById('prod-board-w').value = item.boardW || 2440;
+        document.getElementById('prod-board-h').value = item.boardH || 1220;
+        document.getElementById('prod-stock').value = item.stock;
+        document.getElementById('prod-min-stock').value = item.minStock;
+        document.getElementById('prod-cost').value = item.cost;
+        document.getElementById('prod-price').value = item.price || 0;
+      } else {
+        title.textContent = prefilledBarcode ? 'Registrar Nuevo Ítem por Código Escaneado' : 'Nuevo Ítem de Inventario';
+        document.getElementById('prod-barcode').value = prefilledBarcode;
+        document.getElementById('prod-type').value = 'Tablero / Melamina';
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-board-w').value = 2440;
+        document.getElementById('prod-board-h').value = 1220;
+        document.getElementById('prod-stock').value = 10;
+        document.getElementById('prod-min-stock').value = 5;
+        document.getElementById('prod-cost').value = 45.00;
+        document.getElementById('prod-price').value = 75.00;
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeProductModal() {
+      const modal = document.getElementById('product-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function generateRandomBarcode() {
+      document.getElementById('prod-barcode').value = '75010553' + Math.floor(10000 + Math.random() * 89999);
+    }
+
+    function saveProductFromForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById('prod-edit-id').value;
+      const barcode = document.getElementById('prod-barcode').value.trim();
+      const type = document.getElementById('prod-type').value;
+      const name = document.getElementById('prod-name').value.trim();
+      const boardW = parseFloat(document.getElementById('prod-board-w').value) || 0;
+      const boardH = parseFloat(document.getElementById('prod-board-h').value) || 0;
+      const stock = parseInt(document.getElementById('prod-stock').value, 10) || 0;
+      const minStock = parseInt(document.getElementById('prod-min-stock').value, 10) || 0;
+      const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
+      const price = parseFloat(document.getElementById('prod-price').value) || 0;
+
+      if (editId) {
+        const item = state.inventory.find((i) => i.id === editId);
+        if (item) {
+          Object.assign(item, { barcode, type, name, boardW, boardH, stock, minStock, cost, price });
+        }
+        showToast(`Ítem "${name}" actualizado.`, 'success');
+      } else {
+        state.inventory.unshift({
+          id: barcode || `PRD-${Math.floor(106 + Math.random() * 890)}`,
+          barcode,
+          name,
+          type,
+          boardW,
+          boardH,
+          stock,
+          minStock,
+          cost,
+          price
+        });
+        showToast(`"${name}" agregado al inventario (${barcode}).`, 'success');
+      }
+
+      saveState();
+      closeProductModal();
+      if (state.activeModule !== 'inventory') {
+        switchModule('inventory');
+      } else {
+        render();
+      }
+    }
+
+    // =========================================================================
+    // 4B. INVENTORY CSV EXPORT & IMPORT
+    // =========================================================================
+    function escapeCSVField(val) {
+      const str = String(val ?? '');
+      if (/[",;\n\r]/.test(str)) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    function exportInventoryCSV() {
+      const headers = ['id', 'barcode', 'name', 'type', 'boardW', 'boardH', 'stock', 'minStock', 'cost', 'price'];
+      const rows = state.inventory.map((item) =>
+        headers.map((h) => escapeCSVField(item[h])).join(',')
+      );
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.setAttribute('download', `inventario_nexuserp_sime2026_${stamp}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Inventario exportado (${state.inventory.length} ítems en CSV).`, 'success');
+    }
+
+    function parseCSVLine(line, delimiter) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            current += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === delimiter) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += ch;
+          }
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    function importInventoryCSV(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          let text = String(e.target.result || '');
+          if (text.charCodeAt(0) === 0xFEFF) {
+            text = text.slice(1);
+          }
+          const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          if (lines.length < 2) {
+            showToast('El archivo CSV está vacío o no tiene filas de datos.', 'warning');
+            return;
+          }
+
+          const firstLine = lines[0];
+          const delimiter = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
+          const rawHeaders = parseCSVLine(firstLine, delimiter).map((h) => h.toLowerCase());
+
+          const headerAliases = {
+            id: ['id', 'sku', 'codigo_interno'],
+            barcode: ['barcode', 'codigo_barras', 'codigo', 'ean', 'upc'],
+            name: ['name', 'nombre', 'producto', 'insumo', 'material', 'descripcion'],
+            type: ['type', 'tipo', 'categoria'],
+            boardW: ['boardw', 'ancho', 'w'],
+            boardH: ['boardh', 'alto', 'h'],
+            stock: ['stock', 'cantidad', 'existencia', 'existencias'],
+            minStock: ['minstock', 'stock_minimo', 'minimo', 'min'],
+            cost: ['cost', 'costo', 'costo_unitario'],
+            price: ['price', 'precio', 'precio_venta']
+          };
+
+          const colIdx = {};
+          for (const [key, aliases] of Object.entries(headerAliases)) {
+            const idx = rawHeaders.findIndex((h) => aliases.includes(h));
+            if (idx !== -1) colIdx[key] = idx;
+          }
+
+          const nameIdx = colIdx.name !== undefined ? colIdx.name : 2;
+          const barcodeIdx = colIdx.barcode !== undefined ? colIdx.barcode : 1;
+
+          let added = 0;
+          let updated = 0;
+
+          for (let r = 1; r < lines.length; r++) {
+            const cols = parseCSVLine(lines[r], delimiter);
+            const name = (cols[nameIdx] || '').trim();
+            if (!name) continue;
+
+            const barcode = (cols[barcodeIdx] || '').trim() || ('75010553' + Math.floor(10000 + Math.random() * 89999));
+            const rawId = colIdx.id !== undefined ? (cols[colIdx.id] || '').trim() : '';
+            const type = (colIdx.type !== undefined ? cols[colIdx.type] : '') || 'Tablero / Melamina';
+            const boardWVal = parseFloat((colIdx.boardW !== undefined ? cols[colIdx.boardW] : '2440').replace(',', '.'));
+            const boardHVal = parseFloat((colIdx.boardH !== undefined ? cols[colIdx.boardH] : '1220').replace(',', '.'));
+            const stockVal = parseInt(colIdx.stock !== undefined ? cols[colIdx.stock] : '0', 10);
+            const minStockVal = parseInt(colIdx.minStock !== undefined ? cols[colIdx.minStock] : '5', 10);
+            const costVal = parseFloat((colIdx.cost !== undefined ? cols[colIdx.cost] : '0').replace(',', '.'));
+            const priceVal = parseFloat((colIdx.price !== undefined ? cols[colIdx.price] : '0').replace(',', '.'));
+
+            const existing = state.inventory.find(
+              (item) =>
+                (rawId && item.id.toLowerCase() === rawId.toLowerCase()) ||
+                item.barcode.toLowerCase() === barcode.toLowerCase()
+            );
+
+            if (existing) {
+              existing.name = name;
+              existing.barcode = barcode;
+              existing.type = type;
+              if (!isNaN(boardWVal)) existing.boardW = boardWVal;
+              if (!isNaN(boardHVal)) existing.boardH = boardHVal;
+              if (!isNaN(stockVal)) existing.stock = stockVal;
+              if (!isNaN(minStockVal)) existing.minStock = minStockVal;
+              if (!isNaN(costVal)) existing.cost = costVal;
+              if (!isNaN(priceVal)) existing.price = priceVal;
+              updated++;
+            } else {
+              state.inventory.unshift({
+                id: rawId || barcode || `PRD-${Math.floor(106 + Math.random() * 890)}`,
+                barcode,
+                name,
+                type,
+                boardW: isNaN(boardWVal) ? 2440 : boardWVal,
+                boardH: isNaN(boardHVal) ? 1220 : boardHVal,
+                stock: isNaN(stockVal) ? 0 : stockVal,
+                minStock: isNaN(minStockVal) ? 5 : minStockVal,
+                cost: isNaN(costVal) ? 0 : costVal,
+                price: isNaN(priceVal) ? 0 : priceVal
+              });
+              added++;
+            }
+          }
+
+          saveState();
+          render();
+          showToast(`CSV importado: ${added} nuevos y ${updated} actualizados.`, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Error al leer el archivo CSV. Verifica su formato.', 'error');
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // =========================================================================
+    // 4C. SIME2026 OPTIMIZADOR DE CORTE 2D INTEGRADO
+    // =========================================================================
+    function renderCorte2D() {
+      const c = state.cut2d;
+      const boardsInv = state.inventory.filter((i) => i.boardW > 0 && i.boardH > 0);
+      return `
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          <!-- Left Controls Column -->
+          <div class="xl:col-span-4 space-y-5">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 class="font-bold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                  <i data-lucide="sliders" class="w-4 h-4 text-sky-600"></i>
+                  <span>1. Tablero &amp; Parámetros de Corte</span>
+                </h2>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Material desde Inventario ERP</label>
+                <select id="cut-material-select" onchange="syncCutMaterialFromInventory()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+                  ${boardsInv.map((b) => `
+                    <option value="${b.id}" ${c.selectedMaterialId === b.id ? 'selected' : ''}>
+                      ${b.name} (${b.boardW}×${b.boardH} mm · Stock: ${b.stock} · ${fmtMoney(b.cost)})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Ancho tablero (mm)</label>
+                  <input id="cut-board-w" type="number" min="100" value="${c.boardW}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Alto tablero (mm)</label>
+                  <input id="cut-board-h" type="number" min="100" value="${c.boardH}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Grosor sierra / Kerf (mm)</label>
+                  <input id="cut-kerf" type="number" min="0" step="0.5" value="${c.kerf}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Refilado borde (mm)</label>
+                  <input id="cut-trim" type="number" min="0" value="${c.trim}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Costo tablero ($)</label>
+                  <input id="cut-board-cost" type="number" min="0" step="0.5" value="${c.boardCost}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Tapacanto ($/m)</label>
+                  <input id="cut-edge-cost" type="number" min="0" step="0.05" value="${c.edgeCost}" onchange="updateCutParams()" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+              </div>
+
+              <label class="flex items-center gap-2.5 pt-1 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input id="cut-allow-rotate" type="checkbox" ${c.allowRotate ? 'checked' : ''} onchange="updateCutParams()" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
+                <span>Permitir rotación 90° (sin veta fija)</span>
+              </label>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-3">
+              <h2 class="font-bold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-sky-600"></i>
+                <span>2. Catálogo de Módulos Estándar</span>
+              </h2>
+              <div class="flex gap-2">
+                <select id="cut-module-preset" onchange="state.cut2d.preset = this.value; saveState();" class="flex-1 px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl bg-white">
+                  <option value="cocina_bajo" ${c.preset === 'cocina_bajo' ? 'selected' : ''}>Módulo Bajo Cocina (800×720×560)</option>
+                  <option value="cocina_alto" ${c.preset === 'cocina_alto' ? 'selected' : ''}>Módulo Alto Alacena (800×700×320)</option>
+                  <option value="closet_base" ${c.preset === 'closet_base' ? 'selected' : ''}>Cuerpo Clóset 2 Puertas (900×2000×550)</option>
+                  <option value="cajonera_4" ${c.preset === 'cajonera_4' ? 'selected' : ''}>Cajonera 4 Gavetas (600×720×500)</option>
+                  <option value="escritorio_of" ${c.preset === 'escritorio_of' ? 'selected' : ''}>Escritorio Operativo (1400×750×600)</option>
+                </select>
+                <button type="button" onclick="addCutModulePreset()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shrink-0">
+                  + Módulo
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
+              <h2 class="font-bold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                <i data-lucide="list-plus" class="w-4 h-4 text-sky-600"></i>
+                <span>3. Lista de Piezas &amp; Envío a ERP</span>
+              </h2>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre / Referencia de Pieza</label>
+                <input id="cut-part-name" type="text" placeholder="Ej. Lateral izquierdo" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+              </div>
+
+              <div class="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Ancho (mm)</label>
+                  <input id="cut-part-w" type="number" min="10" value="600" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Alto (mm)</label>
+                  <input id="cut-part-h" type="number" min="10" value="400" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Cantidad</label>
+                  <input id="cut-part-qty" type="number" min="1" value="2" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button type="button" onclick="addCutPart()" class="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl border border-slate-300/80">
+                  + Agregar pieza
+                </button>
+                <button type="button" onclick="loadCutSample()" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300/80">
+                  Ejemplo
+                </button>
+              </div>
+
+              <div class="max-h-48 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 text-[10px] font-semibold uppercase text-slate-500 border-b border-slate-200">
+                      <th class="py-2 px-3">Pieza</th>
+                      <th class="py-2 px-3">Medida</th>
+                      <th class="py-2 px-3 text-right">Cant.</th>
+                      <th class="py-2 px-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cut-parts-tbody" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+
+              <button type="button" onclick="runCutOptimization(true)" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors">
+                Calcular Optimización 2D
+              </button>
+
+              <div class="pt-3 border-t border-slate-100 space-y-2.5">
+                <label class="block text-xs font-semibold text-slate-700">Nombre Proyecto / Cliente (para Orden ERP)</label>
+                <input id="cut-order-project" type="text" value="${c.projectName || ''}" oninput="state.cut2d.projectName = this.value; saveState();" placeholder="Ej. Cocina Integral Sr. Pérez" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+                <button type="button" onclick="sendCutToERPOrder()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-xs transition-colors">
+                  Guardar Orden y Descontar Stock ERP
+                </button>
+              </div>
+
+              <div class="flex gap-2">
+                <button type="button" onclick="exportCutCSV()" class="flex-1 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl">
+                  Exportar Despiece CSV
+                </button>
+                <button type="button" onclick="clearCutParts()" class="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-xl border border-rose-200">
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Results & Canvas Column -->
+          <div class="xl:col-span-8 space-y-6">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
+                <span class="text-[11px] font-semibold uppercase text-slate-400 block">Tableros</span>
+                <strong id="cut-kpi-boards" class="text-xl font-bold text-sky-600">0</strong>
+              </div>
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
+                <span class="text-[11px] font-semibold uppercase text-slate-400 block">Piezas</span>
+                <strong id="cut-kpi-pieces" class="text-xl font-bold text-slate-900">0</strong>
+              </div>
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
+                <span class="text-[11px] font-semibold uppercase text-slate-400 block">Aprovech.</span>
+                <strong id="cut-kpi-yield" class="text-xl font-bold text-emerald-600">0%</strong>
+              </div>
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs">
+                <span class="text-[11px] font-semibold uppercase text-slate-400 block">Desperdicio</span>
+                <strong id="cut-kpi-waste" class="text-xl font-bold text-amber-600">0%</strong>
+              </div>
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs col-span-2 sm:col-span-1">
+                <span class="text-[11px] font-semibold uppercase text-slate-400 block">Costo Est.</span>
+                <strong id="cut-kpi-cost" class="text-xl font-bold text-blue-700">$0.00</strong>
+              </div>
+            </div>
+
+            <div id="cut-boards-container" class="space-y-5"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function syncCutMaterialFromInventory() {
+      const selId = document.getElementById('cut-material-select')?.value;
+      const item = state.inventory.find((i) => i.id === selId);
+      if (!item) return;
+      state.cut2d.selectedMaterialId = item.id;
+      if (item.boardW) {
+        state.cut2d.boardW = item.boardW;
+        const wEl = document.getElementById('cut-board-w');
+        if (wEl) wEl.value = item.boardW;
+      }
+      if (item.boardH) {
+        state.cut2d.boardH = item.boardH;
+        const hEl = document.getElementById('cut-board-h');
+        if (hEl) hEl.value = item.boardH;
+      }
+      if (item.cost !== undefined) {
+        state.cut2d.boardCost = item.cost;
+        const cEl = document.getElementById('cut-board-cost');
+        if (cEl) cEl.value = item.cost;
+      }
+      saveState();
+      runCutOptimization(false);
+    }
+
+    function updateCutParams() {
+      const c = state.cut2d;
+      c.boardW = parseFloat(document.getElementById('cut-board-w')?.value) || 2440;
+      c.boardH = parseFloat(document.getElementById('cut-board-h')?.value) || 1220;
+      c.kerf = parseFloat(document.getElementById('cut-kerf')?.value) || 0;
+      c.trim = parseFloat(document.getElementById('cut-trim')?.value) || 0;
+      c.boardCost = parseFloat(document.getElementById('cut-board-cost')?.value) || 0;
+      c.edgeCost = parseFloat(document.getElementById('cut-edge-cost')?.value) || 0;
+      c.allowRotate = Boolean(document.getElementById('cut-allow-rotate')?.checked);
+      saveState();
+      runCutOptimization(false);
+    }
+
+    function renderCutPartsTable() {
+      const tbody = document.getElementById('cut-parts-tbody');
+      if (!tbody) return;
+      const parts = state.cut2d.parts || [];
+      if (!parts.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-400">Sin piezas cargadas.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = parts.map((p, idx) => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2 px-3 font-medium text-slate-800">${p.name}</td>
+          <td class="py-2 px-3 font-mono text-[11px] text-slate-600">${p.w}×${p.h}</td>
+          <td class="py-2 px-3 text-right font-bold text-slate-900">${p.qty}</td>
+          <td class="py-2 px-2 text-right">
+            <button type="button" onclick="removeCutPart(${idx})" class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold">✕</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function addCutPart() {
+      const nameInput = document.getElementById('cut-part-name');
+      const name = (nameInput?.value || '').trim() || `Pieza ${state.cut2d.parts.length + 1}`;
+      const w = parseFloat(document.getElementById('cut-part-w')?.value);
+      const h = parseFloat(document.getElementById('cut-part-h')?.value);
+      const qty = parseInt(document.getElementById('cut-part-qty')?.value, 10);
+
+      if (!w || !h || !qty || w <= 0 || h <= 0 || qty <= 0) {
+        showToast('Ingresa dimensiones y cantidad válidas.', 'warning');
+        return;
+      }
+
+      state.cut2d.parts.push({ name, w, h, qty });
+      if (nameInput) nameInput.value = '';
+      saveState();
+      renderCutPartsTable();
+      runCutOptimization(false);
+    }
+
+    function removeCutPart(idx) {
+      state.cut2d.parts.splice(idx, 1);
+      saveState();
+      renderCutPartsTable();
+      runCutOptimization(false);
+    }
+
+    function clearCutParts() {
+      state.cut2d.parts = [];
+      saveState();
+      renderCutPartsTable();
+      runCutOptimization(false);
+    }
+
+    function loadCutSample() {
+      state.cut2d.parts = structuredClone(DEFAULT_STATE.cut2d.parts);
+      saveState();
+      renderCutPartsTable();
+      runCutOptimization(true);
+    }
+
+    function addCutModulePreset() {
+      const key = document.getElementById('cut-module-preset')?.value || 'cocina_bajo';
+      const presetParts = MODULE_CATALOG[key] || [];
+      presetParts.forEach((item) => state.cut2d.parts.push({ ...item }));
+      saveState();
+      renderCutPartsTable();
+      runCutOptimization(true);
+      showToast(`Módulo agregado (${presetParts.length} tipos de piezas).`, 'success');
+    }
+
+    function tryPlaceOnCutBoard(board, item, kerf, allowRotate) {
+      let bestRectIndex = -1;
+      let bestScore = Infinity;
+      let bestW = item.w;
+      let bestH = item.h;
+      let rotated = false;
+
+      for (let i = 0; i < board.freeRects.length; i++) {
+        const r = board.freeRects[i];
+        if (item.w <= r.w && item.h <= r.h) {
+          const score = Math.min(r.w - item.w, r.h - item.h);
+          if (score < bestScore) {
+            bestScore = score;
+            bestRectIndex = i;
+            bestW = item.w;
+            bestH = item.h;
+            rotated = false;
+          }
+        }
+        if (allowRotate && item.h <= r.w && item.w <= r.h) {
+          const score = Math.min(r.w - item.h, r.h - item.w);
+          if (score < bestScore) {
+            bestScore = score;
+            bestRectIndex = i;
+            bestW = item.h;
+            bestH = item.w;
+            rotated = true;
+          }
+        }
+      }
+
+      if (bestRectIndex === -1) return false;
+
+      const rect = board.freeRects.splice(bestRectIndex, 1)[0];
+      board.placed.push({
+        name: item.name,
+        x: rect.x,
+        y: rect.y,
+        w: bestW,
+        h: bestH,
+        rotated,
+        color: item.color
+      });
+
+      const remW = rect.w - bestW - kerf;
+      const remH = rect.h - bestH - kerf;
+
+      if (remW > 0 && remH > 0) {
+        if (remW > remH) {
+          board.freeRects.push({ x: rect.x + bestW + kerf, y: rect.y, w: remW, h: rect.h });
+          board.freeRects.push({ x: rect.x, y: rect.y + bestH + kerf, w: bestW, h: remH });
+        } else {
+          board.freeRects.push({ x: rect.x + bestW + kerf, y: rect.y, w: remW, h: bestH });
+          board.freeRects.push({ x: rect.x, y: rect.y + bestH + kerf, w: rect.w, h: remH });
+        }
+      } else if (remW > 0) {
+        board.freeRects.push({ x: rect.x + bestW + kerf, y: rect.y, w: remW, h: rect.h });
+      } else if (remH > 0) {
+        board.freeRects.push({ x: rect.x, y: rect.y + bestH + kerf, w: rect.w, h: remH });
+      }
+
+      return true;
+    }
+
+    function runCutOptimization(notify = false) {
+      const c = state.cut2d;
+      const boardW = c.boardW || 2440;
+      const boardH = c.boardH || 1220;
+      const kerf = c.kerf || 0;
+      const trim = c.trim || 0;
+      const allowRotate = Boolean(c.allowRotate);
+
+      const usableW = boardW - trim * 2;
+      const usableH = boardH - trim * 2;
+
+      const container = document.getElementById('cut-boards-container');
+      if (!container) return;
+
+      if (usableW <= 0 || usableH <= 0) {
+        showToast('El refilado supera el tamaño del tablero.', 'error');
+        return;
+      }
+
+      let items = [];
+      (c.parts || []).forEach((p, idx) => {
+        const color = CUT_PALETTE[idx % CUT_PALETTE.length];
+        for (let i = 0; i < p.qty; i++) {
+          items.push({ name: p.name, w: p.w, h: p.h, color, area: p.w * p.h });
+        }
+      });
+
+      if (!items.length) {
+        lastCutSolution = [];
+        lastCutSummary = { boards: 0, pieces: 0, cost: 0 };
+        document.getElementById('cut-kpi-boards').textContent = '0';
+        document.getElementById('cut-kpi-pieces').textContent = '0';
+        document.getElementById('cut-kpi-yield').textContent = '0%';
+        document.getElementById('cut-kpi-waste').textContent = '0%';
+        document.getElementById('cut-kpi-cost').textContent = '$0.00';
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 border border-slate-200/80 text-center text-slate-400 text-sm">
+            Agrega piezas o selecciona un módulo estándar para calcular el plano de corte 2D.
+          </div>
+        `;
+        return;
+      }
+
+      items.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.area - a.area);
+
+      const boards = [];
+      const unplaced = [];
+
+      const createBoard = () => ({
+        width: boardW,
+        height: boardH,
+        freeRects: [{ x: trim, y: trim, w: usableW, h: usableH }],
+        placed: []
+      });
+
+      for (const item of items) {
+        let placedFlag = false;
+        for (const board of boards) {
+          if (tryPlaceOnCutBoard(board, item, kerf, allowRotate)) {
+            placedFlag = true;
+            break;
+          }
+        }
+        if (!placedFlag) {
+          const newBoard = createBoard();
+          if (tryPlaceOnCutBoard(newBoard, item, kerf, allowRotate)) {
+            boards.push(newBoard);
+          } else {
+            unplaced.push(item);
+          }
+        }
+      }
+
+      lastCutSolution = boards;
+      renderCutResults(boards, unplaced, boardW, boardH);
+      if (notify) {
+        showToast(`Optimización lista: ${boards.length} tablero(s) requeridos.`, 'success');
+      }
+    }
+
+    function renderCutResults(boards, unplaced, boardW, boardH) {
+      const container = document.getElementById('cut-boards-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const totalBoardArea = boards.length * boardW * boardH;
+      let usedArea = 0;
+      let placedCount = 0;
+      let totalPerimeterMeters = 0;
+
+      boards.forEach((b) => {
+        b.placed.forEach((p) => {
+          usedArea += p.w * p.h;
+          placedCount++;
+          totalPerimeterMeters += (2 * (p.w + p.h)) / 1000;
+        });
+      });
+
+      const yieldPct = totalBoardArea > 0 ? ((usedArea / totalBoardArea) * 100).toFixed(1) : '0.0';
+      const wastePct = totalBoardArea > 0 ? (100 - parseFloat(yieldPct)).toFixed(1) : '0.0';
+
+      const boardCost = parseFloat(state.cut2d.boardCost) || 0;
+      const edgeCost = parseFloat(state.cut2d.edgeCost) || 0;
+      const totalEstimatedCost = Number(((boards.length * boardCost) + (totalPerimeterMeters * edgeCost)).toFixed(2));
+
+      lastCutSummary = { boards: boards.length, pieces: placedCount, cost: totalEstimatedCost };
+
+      document.getElementById('cut-kpi-boards').textContent = String(boards.length);
+      document.getElementById('cut-kpi-pieces').textContent = String(placedCount);
+      document.getElementById('cut-kpi-yield').textContent = `${yieldPct}%`;
+      document.getElementById('cut-kpi-waste').textContent = `${wastePct}%`;
+      document.getElementById('cut-kpi-cost').textContent = fmtMoney(totalEstimatedCost);
+
+      if (unplaced.length > 0) {
+        const warn = document.createElement('div');
+        warn.className = 'bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs font-semibold';
+        warn.textContent = `Aviso: ${unplaced.length} pieza(s) exceden el área útil del tablero (${boardW - state.cut2d.trim * 2}×${boardH - state.cut2d.trim * 2} mm).`;
+        container.appendChild(warn);
+      }
+
+      boards.forEach((board, idx) => {
+        const boardArea = boardW * boardH;
+        const boardUsed = board.placed.reduce((acc, p) => acc + p.w * p.h, 0);
+        const eff = ((boardUsed / boardArea) * 100).toFixed(1);
+        const canvasHeight = Math.max(180, Math.round(900 * (boardH / boardW)));
+
+        const box = document.createElement('div');
+        box.className = 'bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-3';
+        box.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Tablero #${idx + 1} (${boardW} × ${boardH} mm)</h3>
+              <p class="text-[11px] text-slate-500">Kerf: ${state.cut2d.kerf} mm · Refilado: ${state.cut2d.trim} mm</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+              Aprovechamiento: ${eff}% · ${board.placed.length} piezas
+            </span>
+          </div>
+          <canvas id="cut-canvas-${idx}" class="cut-canvas" width="900" height="${canvasHeight}"></canvas>
+        `;
+        container.appendChild(box);
+        drawCutBoard(`cut-canvas-${idx}`, board);
+      });
+    }
+
+    function drawCutBoard(canvasId, board) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const scale = canvas.width / board.width;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      board.placed.forEach((p) => {
+        const x = p.x * scale;
+        const y = p.y * scale;
+        const w = p.w * scale;
+        const h = p.h * scale;
+
+        ctx.fillStyle = p.color;
+        ctx.fillRect(x, y, w, h);
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+
+        if (w > 48 && h > 24) {
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 12px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const rotTag = p.rotated ? ' ↻' : '';
+          ctx.fillText(`${p.name}${rotTag}`, x + w / 2, y + h / 2 - 7);
+          ctx.font = '11px Inter, sans-serif';
+          ctx.fillText(`${p.w}×${p.h}`, x + w / 2, y + h / 2 + 8);
+        }
+      });
+    }
+
+    function sendCutToERPOrder() {
+      if (!lastCutSolution.length) {
+        showToast('Primero calcula la optimización de corte 2D.', 'warning');
+        return;
+      }
+      const matId = document.getElementById('cut-material-select')?.value;
+      const matItem = state.inventory.find((i) => i.id === matId);
+      const project = (document.getElementById('cut-order-project')?.value || '').trim() || `Proyecto Módulos #${state.productionOrders.length + 101}`;
+
+      if (matItem) {
+        if (matItem.stock < lastCutSummary.boards) {
+          showToast(`Stock insuficiente de ${matItem.material || matItem.name}. Disponible: ${matItem.stock}, Requerido: ${lastCutSummary.boards}.`, 'error');
+          return;
+        }
+        matItem.stock -= lastCutSummary.boards;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const orderId = `ORD-${state.productionOrders.length + 101}`;
+      const newOrder = {
+        id: orderId,
+        project,
+        material: matItem ? matItem.name : 'Tablero Personalizado',
+        batchSize: lastCutSummary.pieces,
+        boardsUsed: lastCutSummary.boards,
+        inputId: matItem ? matItem.id : null,
+        inputName: matItem ? matItem.name : 'Tablero',
+        inputQty: lastCutSummary.boards,
+        progress: 25,
+        status: 'En Corte',
+        cost: lastCutSummary.cost
+      };
+
+      state.productionOrders.unshift(newOrder);
+      state.accounting.unshift({
+        id: `AST-${Math.floor(100 + Math.random() * 899)}`,
+        date: today,
+        concept: `Consumo Corte 2D ${orderId} - ${project}`,
+        account: 'Producción en Proceso / Inventario',
+        type: 'Egreso',
+        amount: lastCutSummary.cost
+      });
+      state.monthlySeries.expenses[state.monthlySeries.expenses.length - 1] += lastCutSummary.cost;
+      state.cut2d.projectName = '';
+
+      saveState();
+      showToast(`Orden ${orderId} creada y descontados ${lastCutSummary.boards} tablero(s) del inventario.`, 'success');
+      switchModule('production');
+    }
+
+    function exportCutCSV() {
+      if (!lastCutSolution.length) {
+        showToast('Primero calcula la optimización de corte 2D.', 'warning');
+        return;
+      }
+      let csv = 'Tablero,Pieza,Ancho_mm,Alto_mm,PosX_mm,PosY_mm,Rotada\n';
+      lastCutSolution.forEach((b, idx) => {
+        b.placed.forEach((p) => {
+          csv += `${idx + 1},"${p.name}",${p.w},${p.h},${p.x},${p.y},${p.rotated ? 'Si' : 'No'}\n`;
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sime2026_despiece_corte.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Archivo CSV de despiece descargado.', 'success');
+    }
+
+    // =========================================================================
+    // 5. PRODUCTION, ACCOUNTING, HR & ADMIN MODULES
+    // =========================================================================
+    function renderProduction() {
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onsubmit="createProductionOrder(event)" class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4 h-fit">
+            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+              <i data-lucide="factory" class="w-4 h-4 text-purple-600"></i>
+              <span>Nueva Orden de Producción</span>
+            </h2>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Proyecto / Producto a Fabricar *</label>
+              <input id="mrp-product" type="text" required placeholder="Ej. Cocina Integral Modelo Roma" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Piezas / Lote a Producir *</label>
+              <input id="mrp-batch" type="number" min="1" required value="18" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Tablero o Insumo a Consumir *</label>
+              <select id="mrp-input-id" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+                ${state.inventory.map((i) => `<option value="${i.id}">${i.name} (Stock: ${i.stock})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Unidades a Descontar *</label>
+              <input id="mrp-input-qty" type="number" min="1" required value="2" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Lanzar Orden y Reservar Material
+            </button>
+            <button type="button" onclick="switchModule('corte2d')" class="w-full py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-semibold rounded-xl border border-sky-200 transition-colors">
+              Calcular desde Optimizador de Corte 2D
+            </button>
+          </form>
+
+          <div class="lg:col-span-2 space-y-4">
+            ${state.productionOrders.map((op) => `
+              <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <span class="text-xs font-mono font-bold text-purple-600">${op.id}</span>
+                    <h3 class="font-bold text-slate-900 text-base">${op.project || op.product}</h3>
+                    <p class="text-xs text-slate-500">Piezas/Lote: <strong>${op.batchSize} uds</strong> · Material: ${op.material || op.inputName} (${op.boardsUsed || op.inputQty} uds)${op.cost ? ` · Costo est.: ${fmtMoney(op.cost)}` : ''}</p>
+                  </div>
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold ${
+                    op.status === 'Listo' || op.status === 'Completada' ? 'bg-emerald-50 text-emerald-700' :
+                    op.status === 'En Corte' || op.status === 'En Proceso' ? 'bg-purple-50 text-purple-700' : 'bg-amber-50 text-amber-700'
+                  }">${op.status}</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                  <div class="bg-purple-600 h-2.5 rounded-full transition-all" style="width: ${op.progress}%"></div>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs">
+                  <span class="text-slate-500 font-medium">Avance: ${op.progress}%</span>
+                  ${op.status !== 'Listo' && op.status !== 'Completada' ? `
+                    <button onclick="advanceProductionOrder('${op.id}')" class="text-purple-700 font-semibold hover:underline">
+                      Avanzar etapa (+35% / Completar)
+                    </button>
+                  ` : '<span class="text-emerald-600 font-semibold">Orden completada</span>'}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function createProductionOrder(e) {
+      e.preventDefault();
+      const project = document.getElementById('mrp-product').value.trim();
+      const batchSize = parseInt(document.getElementById('mrp-batch').value, 10);
+      const inputId = document.getElementById('mrp-input-id').value;
+      const inputQty = parseInt(document.getElementById('mrp-input-qty').value, 10);
+
+      const insumo = state.inventory.find((i) => i.id === inputId);
+      if (!insumo || insumo.stock < inputQty) {
+        showToast('Material insuficiente en inventario para lanzar la orden.', 'error');
+        return;
+      }
+
+      insumo.stock -= inputQty;
+      const orderId = `ORD-${state.productionOrders.length + 101}`;
+      state.productionOrders.unshift({
+        id: orderId,
+        project,
+        material: insumo.name,
+        batchSize,
+        boardsUsed: inputQty,
+        inputId: insumo.id,
+        inputName: insumo.name,
+        inputQty,
+        progress: 25,
+        status: 'En Corte',
+        cost: Number((inputQty * insumo.cost).toFixed(2))
+      });
+
+      saveState();
+      render();
+      showToast(`Orden ${orderId} iniciada. Se descontaron ${inputQty} uds de ${insumo.name}.`, 'success');
+    }
+
+    function advanceProductionOrder(orderId) {
+      const op = state.productionOrders.find((o) => o.id === orderId);
+      if (!op) return;
+      op.progress = Math.min(100, op.progress + 35);
+      if (op.progress >= 100) {
+        op.progress = 100;
+        op.status = 'Listo';
+        showToast(`¡Orden ${op.id} marcada como Lista!`, 'success');
+      } else {
+        op.status = 'En Corte';
+        showToast(`Avance de ${op.id} actualizado al ${op.progress}%.`, 'info');
+      }
+      saveState();
+      render();
+    }
+
+    function renderAccounting() {
+      const ingresos = state.accounting.filter((a) => a.type === 'Ingreso').reduce((s, a) => s + a.amount, 0);
+      const egresos = state.accounting.filter((a) => a.type === 'Egreso').reduce((s, a) => s + a.amount, 0);
+      const balance = ingresos - egresos;
+
+      return `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80">
+            <p class="text-xs font-semibold uppercase text-slate-400">Total Ingresos</p>
+            <p class="text-2xl font-bold text-emerald-700 mt-1">${fmtMoney(ingresos)}</p>
+          </div>
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80">
+            <p class="text-xs font-semibold uppercase text-slate-400">Total Egresos</p>
+            <p class="text-2xl font-bold text-rose-600 mt-1">${fmtMoney(egresos)}</p>
+          </div>
+          <div class="bg-white rounded-2xl p-5 border border-slate-200/80">
+            <p class="text-xs font-semibold uppercase text-slate-400">Balance Neto</p>
+            <p class="text-2xl font-bold ${balance >= 0 ? 'text-blue-700' : 'text-rose-600'} mt-1">${fmtMoney(balance)}</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h2 class="font-bold text-slate-900 text-base">Libro Diario / Asientos Automáticos</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <th class="py-3 px-4">Asiento</th>
+                  <th class="py-3 px-4">Fecha</th>
+                  <th class="py-3 px-4">Concepto</th>
+                  <th class="py-3 px-4">Cuenta Contable</th>
+                  <th class="py-3 px-4">Tipo</th>
+                  <th class="py-3 px-4 text-right">Monto</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-sm">
+                ${state.accounting.map((a) => `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-600">${a.id}</td>
+                    <td class="py-3 px-4 text-xs text-slate-500">${a.date}</td>
+                    <td class="py-3 px-4 font-medium text-slate-800">${a.concept}</td>
+                    <td class="py-3 px-4 text-xs text-slate-600">${a.account}</td>
+                    <td class="py-3 px-4">
+                      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${a.type === 'Ingreso' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${a.type}</span>
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold ${a.type === 'Ingreso' ? 'text-emerald-700' : 'text-rose-600'}">${a.type === 'Ingreso' ? '+' : '-'}${fmtMoney(a.amount)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHR() {
+      const payrollTotal = state.employees.reduce((s, e) => s + Number(e.salary || 0), 0);
+      return `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onsubmit="addEmployee(event)" class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4 h-fit">
+            <h2 class="font-bold text-slate-900 text-base flex items-center gap-2">
+              <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+              <span>Incorporar Colaborador</span>
+            </h2>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo *</label>
+              <input id="hr-name" type="text" required placeholder="Ej. Mariana Pérez" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Cargo / Rol *</label>
+              <input id="hr-role" type="text" required placeholder="Ej. Especialista de Enchapado y Corte" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Departamento *</label>
+                <select id="hr-dept" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl bg-white">
+                  <option>Producción</option>
+                  <option>Inventario</option>
+                  <option>Ventas</option>
+                  <option>Contabilidad</option>
+                  <option>Administración</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Salario Mensual ($) *</label>
+                <input id="hr-salary" type="number" min="100" required value="1800" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl" />
+              </div>
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Registrar en Nómina
+            </button>
+          </form>
+
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h2 class="font-bold text-slate-900 text-base">Plantilla de Personal</h2>
+                <p class="text-xs text-slate-500">Nómina mensual estimada: <strong class="text-slate-800">${fmtMoney(payrollTotal)}</strong></p>
+              </div>
+              <span class="text-xs font-semibold text-slate-500">${state.employees.length} empleados</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th class="py-3 px-4">Colaborador</th>
+                    <th class="py-3 px-4">Cargo</th>
+                    <th class="py-3 px-4">Área</th>
+                    <th class="py-3 px-4 text-right">Salario</th>
+                    <th class="py-3 px-4">Estado</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                  ${state.employees.map((emp) => `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-3 px-4 font-semibold text-slate-900">${emp.name}</td>
+                      <td class="py-3 px-4 text-xs text-slate-600">${emp.role}</td>
+                      <td class="py-3 px-4 text-xs"><span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">${emp.department}</span></td>
+                      <td class="py-3 px-4 text-right font-semibold text-slate-800">${fmtMoney(emp.salary)}</td>
+                      <td class="py-3 px-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${emp.status === 'Activo' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${emp.status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addEmployee(e) {
+      e.preventDefault();
+      const name = document.getElementById('hr-name').value.trim();
+      const role = document.getElementById('hr-role').value.trim();
+      const department = document.getElementById('hr-dept').value;
+      const salary = parseFloat(document.getElementById('hr-salary').value) || 0;
+
+      state.employees.unshift({
+        id: `EMP-0${state.employees.length + 1}`,
+        name,
+        role,
+        department,
+        salary,
+        status: 'Activo'
+      });
+      saveState();
+      render();
+      showToast(`${name} añadido a Recursos Humanos.`, 'success');
+    }
+
+    function renderAdmin() {
+      return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${state.roles.map((r) => `
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-2">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 text-base">${r.role}</h3>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">${r.users} usuarios</span>
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">${r.access}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 6. INITIALIZATION
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.nav-item').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.nav === state.activeModule);
+      });
+      render();
+    });
+  </script>
+</body>
+</html>
